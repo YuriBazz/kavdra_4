@@ -6,11 +6,14 @@
 #include <thread>
 #include <csignal>
 #include "include/all.hpp"
+#include <condition_variable>
 
 std::atomic finish_required{false};
 std::atomic<size_t> renew_counter{0};
 std::atomic exception_was_thrown{false};
 int return_code = 0;
+std::condition_variable cv;
+std::mutex mtx;
 
 void sigterm_process(int signal) {
     if (signal != SIGTERM) return;
@@ -48,6 +51,7 @@ int main(int argc, char *argv[]) {
         while (!finish_required.load(std::memory_order_acquire) && !exception_was_thrown.load(std::memory_order_acquire)) {
             try {
                 task::finder::find(path_to_dir);
+                cv.notify_one();
             } catch (const std::exception &ex) {
                 exception_was_thrown.store(true, std::memory_order_release);
                 std::cout << "An exception was thrown wile iterating in given path." << std::endl;
@@ -60,12 +64,17 @@ int main(int argc, char *argv[]) {
     };
     std::jthread thread(task);
 
-    // вообще имело бы смысл переписать на cvшках, но бог с ним
     size_t current_stamp = 0;
     while (!finish_required.load(std::memory_order_acquire) && !exception_was_thrown.load(std::memory_order_acquire)) {
-        size_t temp_stamp = renew_counter.load(std::memory_order_acquire);
-        if (temp_stamp == current_stamp) continue;
-        current_stamp = temp_stamp;
+        std::unique_lock lock(mtx);
+        cv.wait(lock, [&current_stamp]() {
+            size_t temp_stamp = renew_counter.load(std::memory_order_acquire);
+            if (current_stamp < temp_stamp) {
+                current_stamp = temp_stamp;
+                return true;
+            }
+            return false;
+        });
         auto time_now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
         std::cout << "File generated. Time stamp: " <<  std::ctime(&time_now) << std::endl;
     }
