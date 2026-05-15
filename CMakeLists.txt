@@ -16,7 +16,7 @@ target_sources(kvadra_4_lib
         src/finder.cpp
         src/formats.cpp
 )
-target_include_directories(kvadra_4_lib PUBLIC include src libs)
+target_include_directories(kvadra_4_lib PUBLIC include libs) # ?????
 
 add_executable(kvadra_4 main.cpp)
 target_link_libraries(kvadra_4 PRIVATE kvadra_4_lib)

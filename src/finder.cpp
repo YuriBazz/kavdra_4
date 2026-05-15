@@ -26,9 +26,9 @@ void task::finder::find(const std::filesystem::path &path) {
         // т.к. нигде не сказано, что нужно обрабатывать симлинки
         auto status = dir_iter.status();
         if (!fs::is_regular_file(status)) continue;
-        auto type = extension_to_format::extension_to_type_map[dir_iter.path().extension()];
-        if (type == undefined) continue;
-        json[extension_to_format::type_to_string(type)].push_back(dir_iter.path().filename());
+        auto type = extension_to_format::extension_to_type_map.find(dir_iter.path().extension());
+        if (type == extension_to_format::extension_to_type_map.end()) continue;
+        json[extension_to_format::type_to_string(type->second)].push_back(dir_iter.path().filename());
     }
 
     file << json << std::endl;

@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) {
     };
     std::jthread thread(task);
 
+    // вообще имело бы смысл переписать на cvшках, но бог с ним
     size_t current_stamp = 0;
     while (!finish_required.load(std::memory_order_acquire) && !exception_was_thrown.load(std::memory_order_acquire)) {
         size_t temp_stamp = renew_counter.load(std::memory_order_acquire);
